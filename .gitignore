@@ -1,0 +1,10 @@
+# Arquivos gerados pelo programa (não devem ser versionados)
+*.docx
+*.pdf
+
+# gitignore padrao :) 
+venv/
+.venv/
+__pycache__/
+
+.DS_Store
