@@ -39,7 +39,7 @@ def main():
     
     pasta_origem = Path.cwd() # MUDAR CASO PRECISE
     
-    pasta_destino = Path(r"\\SRV_IMOBILIARIA\imobiliaria\0_Estagiario\V1 python\Testes CLs") # EDITAR DEPENDENDO DO AMBIENTE
+    pasta_destino = Path(r"\\C:") # EDITAR DEPENDENDO DO AMBIENTE
     
     # TRY/EXCEPT PRA VER SE PASTA EXISTE
     try:
@@ -86,3 +86,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
