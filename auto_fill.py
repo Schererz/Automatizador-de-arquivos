@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-# Importações para DOCX e PDF
 try:
     import docx
     from docx.shared import Inches, Pt, RGBColor
@@ -38,7 +37,7 @@ def coletar_dados():
     print("\n--- Dados do Imóvel ---")
     dados['localizacao_imovel'] = input("Localização do Imóvel (Rua, nº, Bairro, Cidade/Estado, CEP): ").upper()
 
-    # Outros dados
+    # Dados extra 
     print("\n--- Outros Dados ---")
     dados['data_contrato'] = input("Data do Contrato (ex: 20 de outubro de 2025): ")
     
@@ -55,8 +54,7 @@ def preencher_e_salvar_docx(modelo_path, dados):
         print(f"Erro ao abrir o modelo DOCX: {e}")
         return None
 
-    # Mapeamento dos dados para os marcadores no documento
-    # Marcadores sem espaçamento para corresponder ao novo modelo
+    # ATUALIZAR OS ESPAÇAMENTOS FUTURAMENTE 
     marcadores = {
         '[NOMELOCADOR]': dados['nome_locador'],
         '[NACIONALIDADE1]': dados['nacionalidade1'],
@@ -74,7 +72,6 @@ def preencher_e_salvar_docx(modelo_path, dados):
         '[DATA DO CONTRATO]': dados['data_contrato']
     }
 
-    # Lógica de substituição melhorada para ser mais robusta
     def substituir_no_texto(texto):
         for key, value in marcadores.items():
             texto = texto.replace(key, value)
@@ -89,12 +86,10 @@ def preencher_e_salvar_docx(modelo_path, dados):
                 for p in cell.paragraphs:
                     p.text = substituir_no_texto(p.text)
     
-    # Cria o novo caminho para o arquivo preenchido
     pasta_saida = Path(modelo_path).parent
     novo_nome_base = f"Contrato - {dados['nome_locatario']} - {dados['data_contrato']}"
     caminho_saida_docx = pasta_saida / f"{novo_nome_base}.docx"
     
-    # Evita sobrescrever arquivos existentes
     contador = 1
     while caminho_saida_docx.exists():
         caminho_saida_docx = pasta_saida / f"{novo_nome_base} ({contador}).docx"
@@ -126,16 +121,16 @@ def main():
     print("🔄 PREENCHEDOR AUTOMÁTICO DE CONTRATOS")
     print("=" * 40)
     
-    # CONFIRA O CAMINHO DO SEU ARQUIVO DE MODELO AQUI
+    # CAMINHO DO ARQUIVO DE MODELO AQUI
     modelo_path = "modelo.docx"
     
-    # 1. Coleta os dados do usuário
+    # 1. Coletar dados
     dados_contrato = coletar_dados()
     
-    # 2. Preenche e salva o novo arquivo DOCX
+    # 2. Preencher e salvar os dados
     caminho_docx_pronto = preencher_e_salvar_docx(modelo_path, dados_contrato)
     
-    # 3. Converte para PDF
+    # 3. Converter para PDF
     if caminho_docx_pronto:
         converter_para_pdf(caminho_docx_pronto)
         
@@ -143,4 +138,5 @@ def main():
     input("Pressione Enter para sair...")
 
 if __name__ == "__main__":
+
     main()
