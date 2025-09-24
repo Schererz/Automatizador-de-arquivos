@@ -1,142 +1,234 @@
 import os
-from pathlib import Path
+from docx import Document
+import re
+from datetime import datetime
 
-try:
-    import docx
-    from docx.shared import Inches, Pt, RGBColor
-    from docx2pdf import convert
-except ImportError:
-    print("ERRO: Instale as dependências primeiro!")
-    print("Execute: pip install python-docx docx2pdf")
-    exit()
+# ========== CONFIGURAÇÕES DE CAMINHOS ==========
+# Pasta do arquivo modelo
+PASTA_MODELO = r"C:\Users\SeuUsuario\Documents\Modelos"
+# Nome do arquivo modelo
+NOME_ARQUIVO_MODELO = "CL RESID LOCADOR X LOCATÁRIO - MODELO.docx"
+# Pasta onde vai ser salvo os contratos
+PASTA_DESTINO = r"C:\Users\SeuUsuario\Documents\Contratos_Gerados"
 
-def coletar_dados():
-    """Coleta as informações necessárias do usuário."""
-    print("Por favor, insira os dados do contrato:")
+
+# Caminhos completos (não altere esta parte)
+CAMINHO_MODELO = os.path.join(PASTA_MODELO, NOME_ARQUIVO_MODELO)
+
+# Criar pasta de destino se não existir
+if not os.path.exists(PASTA_DESTINO):
+    os.makedirs(PASTA_DESTINO)
+    print(f"Pasta de destino criada: {PASTA_DESTINO}")
+
+def extrair_nome_sobrenome(nome_completo):
+    """Extrai apenas o primeiro nome e último sobrenome"""
+    partes = nome_completo.strip().split()
+    if len(partes) >= 2:
+        return f"{partes[0]} {partes[-1]}"
+    return partes[0] if partes else ""
+
+def coletar_dados_usuario():
+    """Coleta todos os dados necessários do usuário"""
+    print("=== GERADOR DE CONTRATO DE LOCAÇÃO ===\n")
+    
     dados = {}
     
     # Dados do Locador
-    print("\n--- Dados do Locador ---")
-    dados['nome_locador'] = input("Nome do Locador: ").upper()
-    dados['nacionalidade1'] = input("Nacionalidade do Locador: ")
-    dados['estadocivil1'] = input("Estado Civil do Locador: ")
-    dados['profissao1'] = input("Profissão do Locador: ")
-    dados['cpf1'] = input("CPF do Locador: ")
-    dados['localizacao1'] = input("Localização do Locador (Rua, nº, Bairro, Cidade/Estado, CEP): ").upper()
-
-    # Dados do Locatário
-    print("\n--- Dados do Locatário ---")
-    dados['nome_locatario'] = input("Nome do Locatário: ").upper()
-    dados['nacionalidade2'] = input("Nacionalidade do Locatário: ")
-    dados['estadocivil2'] = input("Estado Civil do Locatário: ")
-    dados['profissao2'] = input("Profissão do Locatário: ")
-    dados['cpf2'] = input("CPF do Locatário: ")
-    dados['localizacao2'] = input("Localização do Locatário (Rua, nº, Bairro, Cidade/Estado, CEP): ").upper()
-
+    print("--- DADOS DO LOCADOR ---")
+    dados['LOCADOR'] = input("Nome completo do locador: ").strip()
+    dados['NACIO1'] = input("Nacionalidade: ").strip()
+    dados['ESTADOC1'] = input("Estado civil: ").strip()
+    dados['PROF1'] = input("Profissão: ").strip()
+    dados['CPF1'] = input("CPF (apenas números): ").strip()
+    dados['LOC1'] = input("Endereço completo: ").strip()
+    
+    print("\n--- DADOS DO LOCATÁRIO ---")
+    dados['LOCATÁRIO'] = input("Nome completo do locatário: ").strip()
+    dados['NACIO2'] = input("Nacionalidade: ").strip()
+    dados['ESTADOC2'] = input("Estado civil: ").strip()
+    dados['PROF2'] = input("Profissão: ").strip()
+    dados['CPF2'] = input("CPF (apenas números): ").strip()
+    dados['LOC2'] = input("Endereço completo: ").strip()
+    
+    # Verificar se haverá fiador
+    tem_fiador = input("\nTerá fiador? (s/n): ").strip().lower() == 's'
+    
+    if tem_fiador:
+        print("\n--- DADOS DO FIADOR ---")
+        dados['FIADOR'] = input("Nome completo do fiador: ").strip()
+        dados['NACIO3'] = input("Nacionalidade: ").strip()
+        dados['ESTADOC3'] = input("Estado civil: ").strip()
+        dados['PROF3'] = input("Profissão: ").strip()
+        dados['CPF3'] = input("CPF (apenas números): ").strip()
+        dados['LOC3'] = input("Endereço completo: ").strip()
+    else:
+        # Se não há fiador, remover as seções relacionadas
+        dados['FIADOR'] = ""
+        dados['NACIO3'] = ""
+        dados['ESTADOC3'] = ""
+        dados['PROF3'] = ""
+        dados['CPF3'] = ""
+        dados['LOC3'] = ""
+    
     # Dados do Imóvel
-    print("\n--- Dados do Imóvel ---")
-    dados['localizacao_imovel'] = input("Localização do Imóvel (Rua, nº, Bairro, Cidade/Estado, CEP): ").upper()
-
-    # Dados extra 
-    print("\n--- Outros Dados ---")
-    dados['data_contrato'] = input("Data do Contrato (ex: 20 de outubro de 2025): ")
+    print("\n--- DADOS DO IMÓVEL ---")
+    dados['IMOVEL'] = input("Descrição completa do imóvel (endereço, tipo, etc.): ").strip()
     
-    return dados
-
-def preencher_e_salvar_docx(modelo_path, dados):
-    """
-    Preenche o modelo DOCX com os dados, e salva a cópia preenchida.
-    Retorna o caminho do novo arquivo DOCX.
-    """
-    try:
-        documento = docx.Document(modelo_path)
-    except Exception as e:
-        print(f"Erro ao abrir o modelo DOCX: {e}")
-        return None
-
-    # ATUALIZAR OS ESPAÇAMENTOS FUTURAMENTE 
-    marcadores = {
-        '[NOMELOCADOR]': dados['nome_locador'],
-        '[NACIONALIDADE1]': dados['nacionalidade1'],
-        '[ESTADOCIVIL1]': dados['estadocivil1'],
-        '[PROFISSÃO1]': dados['profissao1'],
-        '[CPF1]': dados['cpf1'],
-        '[LOCALIZAÇÃO1]': dados['localizacao1'],
-        '[NOMELOCATÁRIO]': dados['nome_locatario'],
-        '[NACIONALIDADE2]': dados['nacionalidade2'],
-        '[ESTADOCIVIL2]': dados['estadocivil2'],
-        '[PROFISSÃO2]': dados['profissao2'],
-        '[CPF2]': dados['cpf2'],
-        '[LOCALIZAÇÃO2]': dados['localizacao2'],
-        '[LOCALIZAÇÃOIMÓVEL]': dados['localizacao_imovel'],
-        '[DATA DO CONTRATO]': dados['data_contrato']
-    }
-
-    def substituir_no_texto(texto):
-        for key, value in marcadores.items():
-            texto = texto.replace(key, value)
-        return texto
-
-    for p in documento.paragraphs:
-        p.text = substituir_no_texto(p.text)
+    # Dados do Contrato
+    print("\n--- DADOS DO CONTRATO ---")
+    dados['PRAZO'] = input("Prazo em meses: ").strip()
+    
+    # Data de início
+    while True:
+        try:
+            data_inicio = input("Data de início (DD/MM/AAAA): ").strip()
+            datetime.strptime(data_inicio, "%d/%m/%Y")
+            dados['DATACL'] = data_inicio
+            dados['DATA_CL'] = data_inicio  # Para a data de assinatura
+            break
+        except ValueError:
+            print("Formato de data inválido. Use DD/MM/AAAA")
+    
+    # Valor do aluguel
+    while True:
+        try:
+            valor = float(input("Valor do aluguel (apenas números, ex: 1200.50): ").strip().replace(',', '.'))
+            dados['VALOR'] = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            # Converter valor para extenso (simplificado)
+            dados['VALOR_DIG'] = input("Valor por extenso (ex: mil e duzentos reais): ").strip()
+            break
+        except ValueError:
+            print("Valor inválido. Digite apenas números.")
+    
+    # Cláusula 18 (Garantias)
+    print("\n--- GARANTIAS LOCATÍCIAS ---")
+    print("Cole o texto completo da cláusula de garantia:")
+    print("(Pressione Enter duas vezes consecutivas para finalizar)")
+    print("-" * 50)
+    
+    linhas_clausula = []
+    linhas_vazias_consecutivas = 0
+    
+    while True:
+        linha = input()
         
-    for table in documento.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for p in cell.paragraphs:
-                    p.text = substituir_no_texto(p.text)
+        if linha.strip() == "":
+            linhas_vazias_consecutivas += 1
+            if linhas_vazias_consecutivas >= 2:
+                break
+        else:
+            linhas_vazias_consecutivas = 0
+            linhas_clausula.append(linha)
     
-    pasta_saida = Path(modelo_path).parent
-    novo_nome_base = f"Contrato - {dados['nome_locatario']} - {dados['data_contrato']}"
-    caminho_saida_docx = pasta_saida / f"{novo_nome_base}.docx"
+    dados['CLAUSULA18'] = "\n".join(linhas_clausula)
     
-    contador = 1
-    while caminho_saida_docx.exists():
-        caminho_saida_docx = pasta_saida / f"{novo_nome_base} ({contador}).docx"
-        contador += 1
+    return dados, tem_fiador
 
+def processar_documento(arquivo_origem, dados, tem_fiador):
+    """Processa o documento substituindo as variáveis pelos dados fornecidos"""
     try:
-        documento.save(caminho_saida_docx)
-        print(f"✅ Documento DOCX salvo com sucesso em: {caminho_saida_docx.name}")
-        return caminho_saida_docx
+        # Carregar o documento
+        doc = Document(arquivo_origem)
+        
+        # Processar parágrafos
+        for paragraph in doc.paragraphs:
+            texto_original = paragraph.text
+            texto_modificado = texto_original
+            
+            # Substituir todas as variáveis
+            for chave, valor in dados.items():
+                placeholder = f"[{chave}]"
+                if placeholder in texto_modificado:
+                    texto_modificado = texto_modificado.replace(placeholder, str(valor))
+            
+            # Se não há fiador, remover seções relacionadas
+            if not tem_fiador:
+                # Remover linha do fiador no preâmbulo se estiver entre colchetes
+                if "[ FIADOR (A):" in texto_modificado:
+                    # Encontrar e remover toda a seção do fiador
+                    pattern = r'\*\*\[\s*FIADOR \(A\):.*?\]\*\*'
+                    texto_modificado = re.sub(pattern, '', texto_modificado, flags=re.DOTALL)
+            
+            # Atualizar o parágrafo se houve mudanças
+            if texto_modificado != texto_original:
+                paragraph.clear()
+                paragraph.add_run(texto_modificado)
+        
+        # Processar tabelas (se houver)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    texto_original = cell.text
+                    texto_modificado = texto_original
+                    
+                    for chave, valor in dados.items():
+                        placeholder = f"[{chave}]"
+                        if placeholder in texto_modificado:
+                            texto_modificado = texto_modificado.replace(placeholder, str(valor))
+                    
+                    if texto_modificado != texto_original:
+                        cell.text = texto_modificado
+        
+        # Processar seções de assinatura (remover fiador se necessário)
+        if not tem_fiador:
+            # Esta parte pode precisar de ajustes dependendo da estrutura do documento
+            for paragraph in doc.paragraphs:
+                if "FIADOR:" in paragraph.text:
+                    # Remover ou modificar as linhas de assinatura do fiador
+                    if "ANOR CARDOZO PEREIRA" in paragraph.text or "NATALINA DE MOURA PEREIRA" in paragraph.text:
+                        paragraph.clear()
+        
+        return doc
+        
     except Exception as e:
-        print(f"❌ Erro ao salvar o documento: {e}")
+        print(f"Erro ao processar documento: {str(e)}")
         return None
-
-def converter_para_pdf(caminho_docx):
-    """Converte o arquivo DOCX preenchido para PDF."""
-    if not caminho_docx or not Path(caminho_docx).exists():
-        print("❌ Caminho do arquivo DOCX inválido para conversão.")
-        return
-
-    try:
-        caminho_saida_pdf = caminho_docx.with_suffix('.pdf')
-        convert(str(caminho_docx), str(caminho_saida_pdf))
-        print(f"✅ Conversão para PDF concluída com sucesso: {caminho_saida_pdf.name}")
-    except Exception as e:
-        print(f"❌ Erro ao converter para PDF: {e}")
 
 def main():
-    """Função principal que orquestra o programa."""
-    print("🔄 PREENCHEDOR AUTOMÁTICO DE CONTRATOS")
-    print("=" * 40)
+    # Exibir configurações atuais
+    print("=== CONFIGURAÇÕES DE CAMINHOS ===")
+    print(f"Pasta do modelo: {PASTA_MODELO}")
+    print(f"Arquivo modelo: {NOME_ARQUIVO_MODELO}")
+    print(f"Pasta de destino: {PASTA_DESTINO}")
+    print("-" * 50)
     
-    # CAMINHO DO ARQUIVO DE MODELO AQUI
-    modelo_path = "modelo.docx"
+    # Verificar se o arquivo modelo existe
+    if not os.path.exists(CAMINHO_MODELO):
+        print(f"ERRO: Arquivo modelo não encontrado!")
+        print(f"Caminho esperado: {CAMINHO_MODELO}")
+        print("\nPara corrigir:")
+        print("1. Altere as variáveis PASTA_MODELO e NOME_ARQUIVO_MODELO no início do código")
+        print("2. Ou mova o arquivo modelo para o caminho indicado acima")
+        return
     
-    # 1. Coletar dados
-    dados_contrato = coletar_dados()
+    # Coletar dados
+    dados, tem_fiador = coletar_dados_usuario()
     
-    # 2. Preencher e salvar os dados
-    caminho_docx_pronto = preencher_e_salvar_docx(modelo_path, dados_contrato)
+    # Processar documento
+    print("\nProcessando contrato...")
+    doc_processado = processar_documento(CAMINHO_MODELO, dados, tem_fiador)
     
-    # 3. Converter para PDF
-    if caminho_docx_pronto:
-        converter_para_pdf(caminho_docx_pronto)
+    if doc_processado is None:
+        print("Erro ao processar o documento!")
+        return
+    
+    # Gerar nome do arquivo de saída
+    nome_locador = extrair_nome_sobrenome(dados['LOCADOR'])
+    nome_locatario = extrair_nome_sobrenome(dados['LOCATÁRIO'])
+    nome_arquivo = f"CL RESID {nome_locador} X {nome_locatario}.docx"
+    
+    # Caminho completo para salvar o arquivo
+    caminho_arquivo_saida = os.path.join(PASTA_DESTINO, nome_arquivo)
+    
+    # Salvar documento
+    try:
+        doc_processado.save(caminho_arquivo_saida)
+        print(f"\nContrato gerado com sucesso!")
+        print(f"Arquivo salvo como: {nome_arquivo}")
+        print(f"Local: {caminho_arquivo_saida}")
         
-    print("\n✅ Processamento concluído!")
-    input("Pressione Enter para sair...")
+    except Exception as e:
+        print(f"Erro ao salvar arquivo: {str(e)}")
 
 if __name__ == "__main__":
-
     main()
