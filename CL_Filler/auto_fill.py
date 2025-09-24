@@ -12,7 +12,7 @@ NOME_ARQUIVO_MODELO = "CL RESID LOCADOR X LOCATÁRIO - MODELO.docx"
 PASTA_DESTINO = r"C:\Users\SeuUsuario\Documents\Contratos_Gerados"
 
 
-# Caminhos completos (não altere esta parte)
+# Caminhos completos (não alterar)
 CAMINHO_MODELO = os.path.join(PASTA_MODELO, NOME_ARQUIVO_MODELO)
 
 # Criar pasta de destino se não existir
@@ -154,7 +154,7 @@ def processar_documento(arquivo_origem, dados, tem_fiador):
                 paragraph.clear()
                 paragraph.add_run(texto_modificado)
         
-        # Processar tabelas (se houver)
+        # Processar tabelas
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
@@ -169,7 +169,7 @@ def processar_documento(arquivo_origem, dados, tem_fiador):
                     if texto_modificado != texto_original:
                         cell.text = texto_modificado
         
-        # Processar seções de assinatura (remover fiador se necessário)
+        # Processar seções de assinatura
         if not tem_fiador:
             # Esta parte pode precisar de ajustes dependendo da estrutura do documento
             for paragraph in doc.paragraphs:
@@ -201,10 +201,9 @@ def main():
         print("2. Ou mova o arquivo modelo para o caminho indicado acima")
         return
     
-    # Coletar dados
+    # iniciar coleta
     dados, tem_fiador = coletar_dados_usuario()
     
-    # Processar documento
     print("\nProcessando contrato...")
     doc_processado = processar_documento(CAMINHO_MODELO, dados, tem_fiador)
     
@@ -212,15 +211,13 @@ def main():
         print("Erro ao processar o documento!")
         return
     
-    # Gerar nome do arquivo de saída
+    # Gerar nome do arquivo
     nome_locador = extrair_nome_sobrenome(dados['LOCADOR'])
     nome_locatario = extrair_nome_sobrenome(dados['LOCATÁRIO'])
     nome_arquivo = f"CL RESID {nome_locador} X {nome_locatario}.docx"
     
-    # Caminho completo para salvar o arquivo
+    # Caminho pra salvar o arquivo
     caminho_arquivo_saida = os.path.join(PASTA_DESTINO, nome_arquivo)
-    
-    # Salvar documento
     try:
         doc_processado.save(caminho_arquivo_saida)
         print(f"\nContrato gerado com sucesso!")
