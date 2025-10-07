@@ -1,4 +1,5 @@
-# Automação de edição de arquivos
+# Automação de edição de arquivos (em andamento)
+
 Programa em python para manusear arquivos e pastas no Explorador de Arquivos, renomeando, organizando, filtrando e preenchendo contratos.
 
 Este repositório contém dois scripts Python desenvolvidos para automatizar tarefas comuns de escritório:
